@@ -79,10 +79,14 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 2️⃣ 实现难度低、开发应用较容易；<br>
 3️⃣ 适用并发量小的网络应用开发；<br>
 4️⃣不适用并发量大的应用：因为一个请求IO会阻塞进程，所以，得为每请求分配一个处理进程（线程）以及时响应，系统开销大。</li>
+<li>改进方案<br>
+在服务器端使用阻塞I/O模型时结合多进程/多线程技术。让每一个连接都拥有独立的进程/线程，任何一个连接的阻塞都不会影响到其他连接。（选择多进程还是多线程并无统一标准，因为进程的开销远大于线程，所以在连接数较大的情况下推荐使用多线程。而进程相较于线程具有更高的安全性，所以如果单个服务执行体需要消耗较多的CPU资源，如需要进行大规模或长时间的数据运算或文件访问推荐使用多进程）。</li>
 </ol>
+<p>当连接数规模继续增大，无论使用多线程还是多进程都会严重占据系统资源，降低系统对外界的响应效率，线程或者进程本身也更容易陷入假死。此时可以采用“线程池”或“连接池”来降低创建和销毁进程/线程的频率，减少系统开销。</p>
 <h2>2️⃣非阻塞i/o</h2>
 <p><a target="_blank" rel="noopener noreferrer" href="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/c085bd9b-2750-4ebb-bc3a-1c000104251e"><img src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/c085bd9b-2750-4ebb-bc3a-1c000104251e" alt="image" style="max-width: 100%;"></a><br>
-进程发起IO系统调用后，如果内核缓冲区没有数据，需要到IO设备中读取，进程返回一个错误而不会被阻塞；进程发起IO系统调用后，如果内核缓冲区有数据，内核就会把数据返回进程。</p>
+进程把一个套接字设置成非阻塞是在通知内核：当请求的I/O操作非得把本进程投入睡眠才能完成时，不要把本进程投入睡眠，而是返回一个错误。 因此如果在打开文件时设定了O_NONBLOCK标志，则会以非阻塞方式打开文件。如果I/O系统调用不能立即完成，则会返回错误而不是阻塞进程。</p>
+<p>非阻塞式I/O可以实现周期性检查（轮询）某个文件描述符是否可执行I/O操作。比如，设定一个输入文件描述符为非阻塞式的，然后周期性的执行非阻塞式读操作。如果需要同时检测多个文件描述符，则将其都设为非阻塞，然后一次轮询。但是这种<strong>轮询的效率不高</strong>，在轮询频率不高的情况下，程序响应I/O事件的延迟将难以接受。换句话说，在一个紧凑的循环中做轮询就是在浪费CPU时间，因为多数时间调用会立即出错并返回。</p>
 <ol>
 <li>典型应用：socket是非阻塞的方式（设置为NONBLOCK）</li>
 <li>特点：<br>
@@ -94,10 +98,11 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <p><a target="_blank" rel="noopener noreferrer" href="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/3e81a4e8-b0dc-44cc-8f9f-b5c5371eef89"><img src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/3e81a4e8-b0dc-44cc-8f9f-b5c5371eef89" alt="image" style="max-width: 100%;"></a></p>
 <ul>
 <li>多个的进程的IO可以注册到一个复用器（select）上，然后用一个进程调用该select， select会监听所有注册进来的IO；</li>
-<li>如果select没有监听的IO在内核缓冲区都没有可读数据，select调用进程会被阻塞；而当任一IO在内核缓冲区中有可数据时，select调用就会返回；</li>
+<li>如果select所有监听的IO在内核缓冲区都没有可读数据，select调用进程会被阻塞；而当任一IO在内核缓冲区中有可数据时，select调用就会返回；</li>
 <li>而后select调用进程可以自己或通知另外的进程（注册进程）来再次发起读取IO，读取内核中准备好的数据。</li>
 <li>可以看到，多个进程注册IO后，只有另一个select调用进程被阻塞。</li>
 </ul>
+<p>可以看出I/O多路复用与阻塞I/O模型差别并不大，事实上还要差一些，因为这里使用了两个系统调用而阻塞I/O只是用了一个系统调用。但是<strong>I/O多路复用的优势是其可以同时处理多个连接</strong>。因此如果<strong>处理的连接数不是特别多</strong>的情况下使用I/O多路复用模型的web server不一定比使用多线程技术的阻塞I/O模型好。</p>
 <ol>
 <li>典型应用：select、poll、epoll三种方案，nginx都可以选择使用这三个方案;</li>
 <li>特点：<br>
@@ -113,6 +118,55 @@ Linux中IO复用的实现方式主要有select、poll和epoll：
 </ul>
 </li>
 </ol>
+<p>select()和poll()的原理基本相同：</p>
+<ol>
+<li>注册待侦听的fd(这里的fd创建时最好使用非阻塞)</li>
+<li>每次调用都去检查这些fd的状态，当有一个或者多个fd就绪的时候返回</li>
+<li>返回结果中包括已就绪和未就绪的fd</li>
+</ol>
+<h4>select</h4>
+<p><code class="notranslate">int select (int maxfdp, fd_set *readfds, fd_set *writefds, fd_set *errorfds, struct timeval *timeout);</code></p>
+<ul>
+<li>maxfdp 指集合中所有文件描述符的范围，即所有文件描述符的最大值+1</li>
+<li>readfds、writefds、errorfds 指向文件描述符集合的指针，分别检测输入、输出是否就绪和异常情况是否发生</li>
+<li>timeout 是select()的超时时间，控制着select()的阻塞行为</li>
+</ul>
+<blockquote>
+<p>readfds、writefds、errorfds所指结构体都是保存结果的地方，在调用select()之前，这些参数指向的结构体必须初始化以包含我们所感兴趣的文件描述符集合。之后select()会修改这些结构体，当其返回时他们包含的就是处于就绪态的文件描述符集合。<br>
+当timeout设为NULL或者其指向的结构体字段非零时，select()将阻塞到有下列事件发生</p>
+</blockquote>
+<ul>
+<li>readfds、writefds、errorfds 中指定的文件描述符中至少有一个成为就绪态（NULL）</li>
+<li>该调用被信号处理程序中断</li>
+<li>timeout中指定的时间上限已超时</li>
+</ul>
+<h5>select()的返回值</h5>
+<p>当select()函数返回-1表示出错，错误码包括EBADF表示存在非法文件描述符，EINTR表示该调用被信号处理程序中断了（select不会自动恢复）。返回0表示超时，此时每个文件描述符集合都会被清空。<strong>返回一个正整数表示准备就绪的文件描述符个数</strong>，如果同一个文件描述符在返回的描述符集中出现多次，select会将其统计多次。</p>
+<blockquote>
+<p>一个文件描述符是否阻塞并不影响select()是否阻塞，也就是说如果希望读一个非阻塞文件描述符，并且以5s为超时值调用select()，则select()最多阻塞5s。同理若是指定超时值为NULL，则在该描述符就绪或者捕捉到一个信号之前select()会一直阻塞。</p>
+</blockquote>
+<p>所有关于文件描述符集合的操作都是通过以下四个宏完成，除此之外，常量FD_SETSIZE规定了文件描述符的最大容量。</p>
+<pre class="notranslate"><code class="notranslate">#include &lt;sys/select.h&gt;
+
+void FD_ZERO(fd_set *fdset); //将fdset所指集合初始化为空
+void FD_SET(int fd, fd_set *fdset); //将文件描述符fd添加到由fdset指向的集合中
+void FD_CLR(int fd, fd_set *fdset); //将文件描述符fd从fdset所指集合中移出
+void FD_ISSET(int fd, fd_set *fdset); //检测fd是否是fdset所指集合成员
+</code></pre>
+<h4>poll</h4>
+<pre class="notranslate"><code class="notranslate">#include &lt;poll.h&gt;
+int poll (struct pollfd fds[], nfds_t nfds, int timeout);
+</code></pre>
+<p>poll和select的任务很相似，主要区别在于我们<strong>如何指定待检查的文件描述符</strong>（程序接口不同）。poll不为每个条件构造一个描述符集合，而是构造了一个<strong>pollfd结构的数组</strong>，每个数组元素指定一个描述符编号以及我们<strong>对该描述符感兴趣的条件</strong>。</p>
+<p>每个pollfd结构体指定了一个被监视的文件描述符，可以传递多个结构体，指示poll()监视多个文件描述符。每个结构体的events域是监视该文件描述符的事件掩码，由用户来设置这个域的属性。revents域是文件描述符的操作结果事件掩码，内核在调用返回时设置这个域，并且events中请求的任何事件都可能在revents中返回。</p>
+<p>参数timeout的设置与select()中有所不同（poll的timeout参数是一个整型而select是一个结构体）。</p>
+<ol>
+<li>当timeout等于-1时，表示无限超时。poll会一直阻塞到fds数组中列出的文件描述符有一个达到就绪态（定义在对应的events字段中）或者捕捉到一个信号</li>
+<li>当timeout等于0时，poll不会阻塞——只执行一次检查看看哪个文件描述符已经就绪</li>
+<li>当timeout大于0时，poll至多阻塞timeout毫秒数，无论IO是否准备好，poll都会返回</li>
+</ol>
+<p>poll的返回值<br>
+当poll()函数返回-1表示出错，错误码包括EBADF表示存在非法文件描述符，EINTR表示该调用被信号处理程序中断了（poll不会自动恢复）。返回0表示超时。返回一个正整数表示准备就绪的文件描述符个数，与select不同，poll返回的就是就绪文件描述符的个数每个文件描述符只统计一次。</p>
 <h2>4️⃣信号驱动io模型</h2>
 <p><a target="_blank" rel="noopener noreferrer" href="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/77743b67-28aa-482d-ab50-69d276b8504c"><img src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/77743b67-28aa-482d-ab50-69d276b8504c" alt="image" style="max-width: 100%;"></a><br>
 当进程发起一个IO操作，会向内核注册一个信号处理函数，然后进程返回不阻塞；当内核数据就绪时会发送一个信号给进程，进程便在信号处理函数中调用IO读取数据。<br>
