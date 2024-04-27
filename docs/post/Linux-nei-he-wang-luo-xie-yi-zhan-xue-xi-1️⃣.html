@@ -165,8 +165,12 @@ int poll (struct pollfd fds[], nfds_t nfds, int timeout);
 <li>当timeout等于0时，poll不会阻塞——只执行一次检查看看哪个文件描述符已经就绪</li>
 <li>当timeout大于0时，poll至多阻塞timeout毫秒数，无论IO是否准备好，poll都会返回</li>
 </ol>
-<p>poll的返回值<br>
-当poll()函数返回-1表示出错，错误码包括EBADF表示存在非法文件描述符，EINTR表示该调用被信号处理程序中断了（poll不会自动恢复）。返回0表示超时。返回一个正整数表示准备就绪的文件描述符个数，与select不同，poll返回的就是就绪文件描述符的个数每个文件描述符只统计一次。</p>
+<p>poll的返回值</p>
+<ul>
+<li>当poll()函数返回-1表示出错，错误码包括EBADF表示存在非法文件描述符，EINTR表示该调用被信号处理程序中断了（poll不会自动恢复）。</li>
+<li>返回0表示超时。</li>
+<li>返回一个正整数表示准备就绪的文件描述符个数，与select不同，poll返回的就是就绪文件描述符的个数每个文件描述符只统计一次。</li>
+</ul>
 <h2>4️⃣信号驱动io模型</h2>
 <p><a target="_blank" rel="noopener noreferrer" href="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/77743b67-28aa-482d-ab50-69d276b8504c"><img src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/77743b67-28aa-482d-ab50-69d276b8504c" alt="image" style="max-width: 100%;"></a><br>
 当进程发起一个IO操作，会向内核注册一个信号处理函数，然后进程返回不阻塞；当内核数据就绪时会发送一个信号给进程，进程便在信号处理函数中调用IO读取数据。<br>
