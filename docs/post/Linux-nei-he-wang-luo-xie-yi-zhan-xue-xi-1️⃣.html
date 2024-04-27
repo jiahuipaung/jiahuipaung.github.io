@@ -79,7 +79,77 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 2️⃣ 实现难度低、开发应用较容易；<br>
 3️⃣ 适用并发量小的网络应用开发；<br>
 4️⃣不适用并发量大的应用：因为一个请求IO会阻塞进程，所以，得为每请求分配一个处理进程（线程）以及时响应，系统开销大。</li>
-</ol></div>
+</ol>
+<h2>2️⃣非阻塞i/o</h2>
+<p><a target="_blank" rel="noopener noreferrer" href="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/c085bd9b-2750-4ebb-bc3a-1c000104251e"><img src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/c085bd9b-2750-4ebb-bc3a-1c000104251e" alt="image" style="max-width: 100%;"></a><br>
+进程发起IO系统调用后，如果内核缓冲区没有数据，需要到IO设备中读取，进程返回一个错误而不会被阻塞；进程发起IO系统调用后，如果内核缓冲区有数据，内核就会把数据返回进程。</p>
+<ol>
+<li>典型应用：socket是非阻塞的方式（设置为NONBLOCK）</li>
+<li>特点：<br>
+1️⃣ 进程轮询（重复）调用，消耗CPU的资源；<br>
+2️⃣ 实现难度低、开发应用相对阻塞IO模式较难；<br>
+3️⃣ 适用并发量较小、且不需要及时响应的网络应用开发；</li>
+</ol>
+<h2>3️⃣i/o复用模型</h2>
+<p><a target="_blank" rel="noopener noreferrer" href="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/3e81a4e8-b0dc-44cc-8f9f-b5c5371eef89"><img src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/3e81a4e8-b0dc-44cc-8f9f-b5c5371eef89" alt="image" style="max-width: 100%;"></a></p>
+<ul>
+<li>多个的进程的IO可以注册到一个复用器（select）上，然后用一个进程调用该select， select会监听所有注册进来的IO；</li>
+<li>如果select没有监听的IO在内核缓冲区都没有可读数据，select调用进程会被阻塞；而当任一IO在内核缓冲区中有可数据时，select调用就会返回；</li>
+<li>而后select调用进程可以自己或通知另外的进程（注册进程）来再次发起读取IO，读取内核中准备好的数据。</li>
+<li>可以看到，多个进程注册IO后，只有另一个select调用进程被阻塞。</li>
+</ul>
+<ol>
+<li>典型应用：select、poll、epoll三种方案，nginx都可以选择使用这三个方案;</li>
+<li>特点：<br>
+1️⃣ 专一进程解决多个进程IO的阻塞问题，性能好；Reactor模式;<br>
+2️⃣ 实现、开发应用难度较大；<br>
+3️⃣ 适用高并发服务应用开发：一个进程（线程）响应多个请求；</li>
+<li>select、poll、epoll<br>
+Linux中IO复用的实现方式主要有select、poll和epoll：
+<ul>
+<li>Select：注册IO、阻塞扫描，监听的IO最大连接数不能多于FD_SIZE；</li>
+<li>Poll：原理和Select相似，没有数量限制，但IO数量大扫描线性性能下降；</li>
+<li>Epoll ：事件驱动不阻塞，mmap实现内核与用户空间的消息传递，数量很大，Linux2.6后内核支持；</li>
+</ul>
+</li>
+</ol>
+<h2>4️⃣信号驱动io模型</h2>
+<p><a target="_blank" rel="noopener noreferrer" href="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/77743b67-28aa-482d-ab50-69d276b8504c"><img src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/77743b67-28aa-482d-ab50-69d276b8504c" alt="image" style="max-width: 100%;"></a><br>
+当进程发起一个IO操作，会向内核注册一个信号处理函数，然后进程返回不阻塞；当内核数据就绪时会发送一个信号给进程，进程便在信号处理函数中调用IO读取数据。<br>
+特点：回调机制；</p>
+<h2>5️⃣异步io模型</h2>
+<p><a target="_blank" rel="noopener noreferrer" href="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/d14cebdf-1cec-4f39-935e-8873c0dcdbc3"><img src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/d14cebdf-1cec-4f39-935e-8873c0dcdbc3" alt="image" style="max-width: 100%;"></a><br>
+当进程发起一个IO操作，进程返回（不阻塞），但也不能返回结果；内核把整个IO处理完后，会通知进程结果。如果IO操作成功则进程直接获取到数据。</p>
+<ol>
+<li>典型应用：JAVA7 AIO、高性能<a href="https://cloud.tencent.com/act/pro/promotion-cvm?from_column=20065&amp;from=20065" rel="nofollow">服务器</a>应用</li>
+<li>特点：<br>
+1️⃣ 不阻塞，数据一步到位；Proactor模式；<br>
+2️⃣ 需要操作系统的底层支持，LINUX 2.5 版本内核首现，2.6 版本产品的内核标准特性；<br>
+3️⃣ 非常适合高性能高并发应用；</li>
+</ol>
+<h2>比较</h2>
+<p><a target="_blank" rel="noopener noreferrer" href="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/8514aedb-8b4d-4b63-9b54-0698eadbab06"><img src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/8514aedb-8b4d-4b63-9b54-0698eadbab06" alt="image" style="max-width: 100%;"></a></p>
+<h3>阻塞IO调用和非阻塞IO调用、阻塞IO模型和非阻塞IO模型</h3>
+<p>这里的阻塞IO调用和非阻塞IO调用不是指阻塞IO模型和非阻塞IO模型：<br>
+<strong>阻塞IO调用</strong> ：在用户进程（线程）中调用执行的时候，进程会等待该IO操作，而使得其他操作无法执行。<br>
+<strong>非阻塞IO调用</strong>：在用户进程中调用执行的时候，无论成功与否，该IO操作会立即返回，之后进程可以进行其他操作（当然如果是读取到数据，一般就接着进行数据处理）。<br>
+这个直接理解就好，进程（线程）IO调用会不会阻塞进程自己。所以这里两个概念是相对调用进程本身状态来讲的。</p>
+<p>从上面对比图片来说，阻塞IO模型是一个阻塞IO调用，而非阻塞IO模型是多个非阻塞IO调用+一个阻塞IO调用，因为多个IO检查会立即返回错误，不会阻塞进程。</p>
+<p>而上面也说过了，非阻塞IO模型对于阻塞IO模型来说区别就是，内核数据没准备好需要进程阻塞的时候，就返回一个错误，以使得进程不被阻塞。</p>
+<h3>同步IO和异步IO</h3>
+<p><strong>同步IO</strong>：导致请求进程阻塞，直到I/O操作完成。<br>
+<strong>异步IO</strong>：不导致请求进程阻塞。<br>
+先说说同步和异步，同步和异步关注的是双方的消息通信机制：</p>
+<ul>
+<li>同步：双方的动作是经过双方协调的，步调一致的。</li>
+<li>异步：双方并不需要协调，都可以随意进行各自的操作。</li>
+</ul>
+<p>这里我们的双方是指，用户进程和IO设备；明确同步和异步之后，我们在上面网络输入操作例子的基础上，进行扩展定义：</p>
+<ul>
+<li>同步IO：用户进程发出IO调用，去获取IO设备数据，双方的数据要经过内核缓冲区同步，完全准备好后，再复制返回到用户进程。而复制返回到用户进程会导致请求进程阻塞，直到I/O操作完成。</li>
+<li>异步IO：用户进程发出IO调用，去获取IO设备数据，并不需要同步，内核直接复制到进程，整个过程不导致请求进程阻塞。<br>
+所以， 阻塞IO模型、非阻塞IO模型、IO复用模型、信号驱动的IO模型者为同步IO模型，只有异步IO模型是异步IO。</li>
+</ul></div>
 <div style="font-size:small;margin-top:8px;float:right;"></div>
 <button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
 <div class="comments" id="comments"></div>
