@@ -68,6 +68,8 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <div class="markdown-body" id="postBody"><h1>目录</h1>
 <p><a href="#%E6%A6%82%E8%BF%B0">1. 概述</a><br>
 <a href="#%E7%B3%BB%E7%BB%9F%E8%B0%83%E7%94%A8">1.1 系统调用</a><br>
+<a href="#%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F">1.2 文件系统</a><br>
+<a href="">1.2.1</a><br>
 2.</p>
 <h1>概述</h1>
 <p>专注于内核之上--用户空间级别的编程<br>
@@ -102,6 +104,8 @@ Linux中普通文件就是以线性字节数组方式组织的数据，即字节
 当内核打开类似/home/ac/asd/test.txt文件时，遍历路径上的每一个目录项dentry，来查找下一项的inode。该过程称为路径解析。内核也是用dentry cache存储目录解析的结构，提供时间局部性支持，加快查询速度。<br>
 虽然目录可以看成普通文件，但kernel不允许像操作普通file一样操作他们，仅允许进行两个操作：添加链接和删除链接。</p>
 <h3>硬链接</h3>
+<p>把不同名字映射到同一inode的多个链接。删除目录结构中的一个文件会引发一个unlink操作，移除文件名与inode的映射信息。由于支持硬链接，不能在每次unlink时都移除inode和关联数据（若该inode还有其他硬链接呢？）。未保证在最后一个硬链接移除时能彻底删除文件，inode还包含link count来跟踪硬链接数。</p>
+<h3>符号链接</h3>
 <h4>inode和fd以及文件指针的区别</h4>
 <p>如上inode与文件一一对应；<br>
 文件描述符fd：每打开一个文件，对应一个fd，通过fd查找打开文件的偏移量等数据，一个inode可以有0或多个fd；<br>
