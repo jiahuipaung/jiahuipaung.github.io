@@ -52,10 +52,37 @@ Linux中普通文件就是以线性字节数组方式组织的数据，即字节
 子进程默认获取一份父进程文件表的拷贝。其中打开文件列表、访问模式，当前文件位置等信息均一致。
 ## 2.1打开文件
 read()和write()可以访问文件，在被访问之前必须通过open()或create()systecall来打开它。使用完毕后用close()来关闭。
+### 2.1.1open()系统调用
 open()将文件名与fd关联，文件位置指针设置为0，根据flags给出的标识位打开。进程必须有足够的权限才能调用open系统调用对文件进行访问。
-flags可以是O_RDONLY, O_WRONLY 或者 O_RDWR与下述模式的或运算
+<img width="509" alt="image" src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/a9e4401c-aa91-4657-98ec-329603430647">
+
+flags可以是O_RDONLY, O_WRONLY 或者 O_RDWR与下述模式的或运算。当使用O_CREAT或新建文件时，须带mode参数。
 <img width="492" alt="image" src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/2713718f-813b-41ab-8298-b38b344a8c07">
 <img width="488" alt="image" src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/0834368f-9759-4fef-8267-61a0fb014843">
+### 2.1.2新文件所有者
+确定哪个用户拥有新文件是很简单的：即创建该文件的进程的用户id。麻烦的是用户组
+### 2.1.3新文件权限
+mode参数提供新建文件权限。
+### 2.1.4creat()系统调用
+O_WRONLY | O_CREAT | O_TRUNC组合经常被使用，使用creat函数专门实现
+`
+int creat(const char * name, mode_t mode);
+`
+## 2.2read()读取文件
+```
+#include <unistd.h>
+ssize_t read(int fd, void *buf, size_t len);
+```
+从fd指向的文件的当前偏移量读取至多len个字节到buf。成功时返回写入buf的字节数，出错时返回-1。
+fd所指文件的位置指针会向前移动，移动长度由之前读取的字节数决定。调用可能没有读完len个字节就反悔。需要对其进行检查。
+### 2.2.1返回值
+由于可供读取的字节数比len小，系统调用被信号打断，管道被破坏等原因，都会导致返回值是一个小雨len的非0正整数。返回0表示已位于文件尾EOF。
+当调用需要读取len个字节却没有一个字节可读，调用将阻塞，知道哪些字节可读性为止（假设fd没有在非阻塞模式打开）。此时与返回EOF不同。
+有些错误可以恢复，例如read在为读取任何字节前被一个信号打断，返回-1，并设置errno为EINTR。可重新提交读申请。
+EAGAIN表示读取会因没有可用的数据而阻塞，读请求应在之后重开（在非阻塞模式下发生）
+### 非阻塞读
+当没有可读数据时，调用立即返回。称为非阻塞IO。
 
-
-<img width="509" alt="image" src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/a9e4401c-aa91-4657-98ec-329603430647">
+# 3.缓冲输入输出
+频繁使用系统调用，在用户态和内核态进行切换，会导致操作效率急剧下降。以block整数倍对其地址时，IO效率最好。
+## 3.1用户-缓冲IO
