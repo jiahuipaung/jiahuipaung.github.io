@@ -141,7 +141,21 @@ fd所指文件的位置指针会向前移动，移动长度由之前读取的字
 有些错误可以恢复，例如read在为读取任何字节前被一个信号打断，返回-1，并设置errno为EINTR。可重新提交读申请。<br>
 EAGAIN表示读取会因没有可用的数据而阻塞，读请求应在之后重开（在非阻塞模式下发生）</p>
 <h3>非阻塞读</h3>
-<p>当没有可读数据时，调用立即返回。称为非阻塞IO。</p>
+<p>当没有可读数据时，调用立即返回。称为非阻塞IO。<br>
+open()中给定O_NONBLOCK，且没有可读数据时，read返回-1，errno为EAGAIN。非阻塞IO时必须检查EAGAIN。</p>
+<h2>2.3用write写</h2>
+<pre class="notranslate"><code class="notranslate">ssize_t write(int fd, const void *buf, size_t count);
+</code></pre>
+<p>成功时返回写入字节数，并更新文件位置；错误时返回-1，并设置errno。</p>
+<h3>2.3.1部分写</h3>
+<p>对write没有EOF情况，对普通文件来说，除非发生错误，否则将保证写入所有请求。<br>
+但对于其他类型文件，例如套接字，就需要一个循环来保证真正写入了所有请求的字节。</p>
+<h3>2.3.2追加模式</h3>
+<p>0_APPEND参数打开fd。写操作不从fd当前位置开始，而从文件末尾开始。</p>
+<h2>2.4同步IO</h2>
+<h3>2.4.1 fsync和fdatasyns</h3>
+<p><code class="notranslate">int fsync(int fd);</code><br>
+fsync()可以保证fd对应文件的脏数据回写到磁盘上，fd必须以写方式打开。</p>
 <h1>3.缓冲输入输出</h1>
 <p>频繁使用系统调用，在用户态和内核态进行切换，会导致操作效率急剧下降。以block整数倍对其地址时，IO效率最好。</p>
 <h2>3.1用户-缓冲IO</h2></div>
