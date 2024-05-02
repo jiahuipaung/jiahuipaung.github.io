@@ -86,9 +86,26 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <p>文件描述符在用户空间内共享，允许用户使用其直接访问文件。<br>
 Linux中普通文件就是以线性字节数组方式组织的数据，即字节流，并没有要求文件有特定的结构；而在其他OS，如VMS，提供高度结构化的文件，支持“记录”等概念。<br>
 不同进程对文件的并发访问问题；<br>
-文件可以通过inode进行访问，inode使用唯一数值进行标识，其中存储文件关联的元数据，如修改时间戳，所有者，类型，数据地址等，但不包括文件名；文件本事并不与文件名称直接关联。</p>
+文件可以通过inode进行访问，inode使用唯一数值进行标识，其中存储文件关联的元数据，如修改时间戳，所有者，类型，数据地址等，但不包括文件名；<strong>文件本身并不与文件名称直接关联</strong>。</p>
 <h3>inode</h3>
-<p>硬盘最小存储单位为扇区sector，每个扇区存储</p>
+<p>硬盘最小存储单位为扇区sector，每个扇区存储512B即0.5KB。<br>
+操作系统读取以块block为单位，常见为4KB，即8个sector。<br>
+文件数据存储在块中，那么相关元信息inode存储在什么位置？实际也在硬盘中！<br>
+在硬盘格式化时，OS会自动将硬盘氛围两个区，数据区和inode区；每个inode节点一般为128或256B，一般每1或2kb就设置一个inode；由于每个文件都需要一个inode，因此可能出现inode已用尽但硬盘还未存满的情况，此时无法创建新文件。<br>
+<a target="_blank" rel="noopener noreferrer" href="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/1427c0ab-98e4-4bdf-a390-2d7a3c896386"><img src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/1427c0ab-98e4-4bdf-a390-2d7a3c896386" alt="image" style="max-width: 100%;"></a><br>
+每个inode对应一个号码，OS以此识别不同文件，linux系统内部不使用文件名，而使用inode号码来识别文件。用户通过文件名打开文件过程如下：文件名-&gt;inode-&gt;文件所在block读取数据。</p>
+<h3>目录</h3>
+<p>目录文件结构简单，为一系列目录像的列表：所包含文件名、对应inode编号；<br>
+也就是木桶提供文件名与inode的映射。文件名与inode的配对成为链接link；<br>
+当用户空间请求打开一个文件时，内核打开包含指定文件名的目录，然后搜索该文件，获取对应inode编号，找到对应inode，其中包含block及地址。<br>
+那么怎么知道应该<strong>到哪个目录找指定文件名</strong>呢？<br>
+当内核打开类似/home/ac/asd/test.txt文件时，遍历路径上的每一个目录项dentry，来查找下一项的inode。该过程称为路径解析。内核也是用dentry cache存储目录解析的结构，提供时间局部性支持，加快查询速度。<br>
+虽然目录可以看成普通文件，但kernel不允许像操作普通file一样操作他们，仅允许进行两个操作：添加链接和删除链接。</p>
+<h3>硬链接</h3>
+<h4>inode和fd以及文件指针的区别</h4>
+<p>如上inode与文件一一对应；<br>
+文件描述符fd：每打开一个文件，对应一个fd，通过fd查找打开文件的偏移量等数据，一个inode可以有0或多个fd；<br>
+<a target="_blank" rel="noopener noreferrer" href="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/9ec1966c-7272-4c7f-8e66-bb71cd12ada6"><img src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/9ec1966c-7272-4c7f-8e66-bb71cd12ada6" alt="image" style="max-width: 100%;"></a></p>
 <p>使用inode访问文件</p></div>
 <div style="font-size:small;margin-top:8px;float:right;"></div>
 <button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
