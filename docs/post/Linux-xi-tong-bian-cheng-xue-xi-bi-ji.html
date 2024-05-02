@@ -110,7 +110,17 @@ Linux中普通文件就是以线性字节数组方式组织的数据，即字节
 <p>如上inode与文件一一对应；<br>
 文件描述符fd：每打开一个文件，对应一个fd，通过fd查找打开文件的偏移量等数据，一个inode可以有0或多个fd；<br>
 <a target="_blank" rel="noopener noreferrer" href="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/9ec1966c-7272-4c7f-8e66-bb71cd12ada6"><img src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/9ec1966c-7272-4c7f-8e66-bb71cd12ada6" alt="image" style="max-width: 100%;"></a></p>
-<p>使用inode访问文件</p></div>
+<h1>2.文件I/O</h1>
+<p><strong>文件打开</strong><br>
+内核为每个进程维护一个文件打开列表file table，有fd进行索引，每项包含一个打开文件的信息，其中包括一个指向文件备份inode内存拷问的指针和元数据（文件位置、访问模式等）。用户空间和内核空间都把fd作为每个进程的唯一cookies。<br>
+子进程默认获取一份父进程文件表的拷贝。其中打开文件列表、访问模式，当前文件位置等信息均一致。</p>
+<h2>2.1打开文件</h2>
+<p>read()和write()可以访问文件，在被访问之前必须通过open()或create()systecall来打开它。使用完毕后用close()来关闭。<br>
+open()将文件名与fd关联，文件位置指针设置为0，根据flags给出的标识位打开。进程必须有足够的权限才能调用open系统调用对文件进行访问。<br>
+flags可以是O_RDONLY, O_WRONLY 或者 O_RDWR与下述模式的或运算<br>
+<a target="_blank" rel="noopener noreferrer" href="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/2713718f-813b-41ab-8298-b38b344a8c07"><img width="492" alt="image" src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/2713718f-813b-41ab-8298-b38b344a8c07" style="max-width: 100%;"></a><br>
+<a target="_blank" rel="noopener noreferrer" href="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/0834368f-9759-4fef-8267-61a0fb014843"><img width="488" alt="image" src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/0834368f-9759-4fef-8267-61a0fb014843" style="max-width: 100%;"></a></p>
+<p><a target="_blank" rel="noopener noreferrer" href="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/a9e4401c-aa91-4657-98ec-329603430647"><img width="509" alt="image" src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/a9e4401c-aa91-4657-98ec-329603430647" style="max-width: 100%;"></a></p></div>
 <div style="font-size:small;margin-top:8px;float:right;"></div>
 <button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
 <div class="comments" id="comments"></div>

@@ -46,7 +46,16 @@ Linux中普通文件就是以线性字节数组方式组织的数据，即字节
 文件描述符fd：每打开一个文件，对应一个fd，通过fd查找打开文件的偏移量等数据，一个inode可以有0或多个fd；
 ![image](https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/9ec1966c-7272-4c7f-8e66-bb71cd12ada6)
 
+# 2.文件I/O
+**文件打开**
+内核为每个进程维护一个文件打开列表file table，有fd进行索引，每项包含一个打开文件的信息，其中包括一个指向文件备份inode内存拷问的指针和元数据（文件位置、访问模式等）。用户空间和内核空间都把fd作为每个进程的唯一cookies。
+子进程默认获取一份父进程文件表的拷贝。其中打开文件列表、访问模式，当前文件位置等信息均一致。
+## 2.1打开文件
+read()和write()可以访问文件，在被访问之前必须通过open()或create()systecall来打开它。使用完毕后用close()来关闭。
+open()将文件名与fd关联，文件位置指针设置为0，根据flags给出的标识位打开。进程必须有足够的权限才能调用open系统调用对文件进行访问。
+flags可以是O_RDONLY, O_WRONLY 或者 O_RDWR与下述模式的或运算
+<img width="492" alt="image" src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/2713718f-813b-41ab-8298-b38b344a8c07">
+<img width="488" alt="image" src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/0834368f-9759-4fef-8267-61a0fb014843">
 
 
-
-使用inode访问文件
+<img width="509" alt="image" src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/a9e4401c-aa91-4657-98ec-329603430647">
