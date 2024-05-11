@@ -1,7 +1,34 @@
 # 总览
-在socket编程中，我们使用socket接口将数据推送到内核，网络数据在内核中的处理主要是在协议栈和网卡间进行：
-<img width="670" alt="image" src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/8700977e-2e5f-41da-bdad-97ed94fb0de1">
-<img width="592" alt="image" src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/d737ecc9-a470-403b-8dad-34d05720a1b7">
+在socket编程中，我们使用socket接口将数据推送到内核，网络数据在内核中的处理主要是在协议栈和网卡间进行。
+
+## 层级抽象
+<img width="745" alt="image" src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/198aca6c-3537-433f-b8b7-4107ee2ae8d9">
+
+
+## 协议栈中的数据结构
+
+## 网络协议栈初始化
+需要从内核启动流程说起。
+当内核完成自解压过程后进入内核启动流程，这一过程先在 arch/mips/kernel/head.S 程序中，这个程序负责数据区（BBS）、中断描述表（IDT）、段描述表（GDT）、页表和寄存器的初始化，程序中定义了内核的入口函数 kernel_entry()。kernel_entry() 函数是体系结构相关的汇编代码，它首先初始化内核堆栈段为创建系统中的第一过程进行准备，接着用一段循环将内核映像的未初始化的数据段清零，最后跳到 start_kernel() 函数中初始化硬件相关的代码，完成 Linux Kernel 环境的建立。
+
+start_kenrel() 定义在 init/main.c 中，真正的内核初始化过程就是从这里才开始。函数 start_kerenl() 将会调用一系列的初始化函数，如：平台初始化，内存初始化，陷阱初始化，中断初始化，进程调度初始化，缓冲区初始化，完成内核本身的各方面设置，目的是最终建立起基本完整的 Linux 内核环境。
+
+start_kernel() 中主要函数及调用关系如下：
+
+## 解析socket创建流程
+
+## 协议栈收包流程
+
+## 协议栈发包流程
+
+## 
+
+
+
+
+
+start_kernel() 的过程中会执行 socket_init() 来完成协议栈的初始化，实现如下：
+
 
 
 # 5种I/O模型
