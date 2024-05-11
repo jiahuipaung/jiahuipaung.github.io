@@ -1,4 +1,8 @@
-# 网络栈结构概述
+# 总览
+在socket编程中，我们使用socket接口将数据推送到内核，网络数据在内核中的处理主要是在协议栈和网卡间进行：
+<img width="670" alt="image" src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/8700977e-2e5f-41da-bdad-97ed94fb0de1">
+<img width="592" alt="image" src="https://github.com/jiahuipaung/jiahuipaung.github.io/assets/70688286/d737ecc9-a470-403b-8dad-34d05720a1b7">
+
 
 # 5种I/O模型
 阻塞IO模型、非阻塞IO模型、IO复用模型、信号驱动的IO模型、异步IO模型；前4种为同步IO操作，只有异步IO模型是异步IO操作。
