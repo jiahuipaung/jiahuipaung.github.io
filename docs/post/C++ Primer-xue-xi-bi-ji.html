@@ -9,9 +9,13 @@
         let theme = localStorage.getItem("meek_theme") || "light";
         document.documentElement.setAttribute("data-color-mode", theme);
     </script>
-<meta name="description" content="# 。">
+<meta name="description" content="# 第六章 函数
+## 含有可变形参的函数
+1. initializer_list形参，解决形参数量未知，但所有形参类型均相同的问题。">
 <meta property="og:title" content="C++ Primer学习笔记">
-<meta property="og:description" content="# 。">
+<meta property="og:description" content="# 第六章 函数
+## 含有可变形参的函数
+1. initializer_list形参，解决形参数量未知，但所有形参类型均相同的问题。">
 <meta property="og:type" content="article">
 <meta property="og:url" content="https://jiahuipaung.github.io/post/C%2B%2B%20Primer-xue-xi-bi-ji.html">
 <meta property="og:image" content="https://github.githubassets.com/favicons/favicon.svg">
@@ -70,7 +74,17 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 </div>
 </div>
     <div id="content">
-<div class="markdown-body" id="postBody"><h1></h1></div>
+<div class="markdown-body" id="postBody"><h1>第六章 函数</h1>
+<h2>含有可变形参的函数</h2>
+<ol>
+<li>initializer_list形参，解决形参数量未知，但所有形参类型均相同的问题。其和vector一样是模版类型，不同点是其生命的恶对象中的元素永远是常量值，无法改变。有begin和end操作；可在函数内使用范围for</li>
+<li>省略符形参：一般只用于与C函数交互；只能出现在最后一个参数位置；无需进行类型检查；应仅用于C和C++通用的类型</li>
+</ol>
+<blockquote>
+<p>注意结尾是否有返回值，该问题编译器可能无法发现<br>
+不要返回局部变量的指针或引用<br>
+函数返回引用时得到左值，返回其他时得到右值</p>
+</blockquote></div>
 <div style="font-size:small;margin-top:8px;float:right;"></div>
 <button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
 <div class="comments" id="comments"></div>
