@@ -84,7 +84,20 @@ body{box-sizing: border-box;min-width: 200px;max-width: 900px;margin: 20px auto;
 <p>注意结尾是否有返回值，该问题编译器可能无法发现<br>
 不要返回局部变量的指针或引用<br>
 函数返回引用时得到左值，返回其他时得到右值</p>
-</blockquote></div>
+</blockquote>
+<h2>返回数组指针</h2>
+<ol>
+<li>使用typedef int arrT[10]或using arrT = int[10]来定义返回类型为数组的指针；arrT为含有10个整数的数组的别名</li>
+<li>Type  (*func(params_list)) [dim]</li>
+<li>尾置返回类型：auto func(int i) -&gt; int(*)[10];</li>
+<li>使用decltype：int odd[] = {1,2,3};   decltype(odd) *func(int i);</li>
+</ol>
+<h2>函数重载</h2>
+<ol>
+<li>可以参数不同，不能只有返回类型不同；</li>
+<li>拥有顶层const的形参不能和没有顶层const的形参区分开；但是底层可以（麻烦死了）</li>
+</ol>
+<h3>重载和作用域</h3></div>
 <div style="font-size:small;margin-top:8px;float:right;"></div>
 <button class="btn btn-block" type="button" onclick="openComments()" id="cmButton">评论</button>
 <div class="comments" id="comments"></div>
